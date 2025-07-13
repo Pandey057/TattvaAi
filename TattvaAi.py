@@ -1,56 +1,83 @@
 import streamlit as st
 import requests
 
+# 🔷 Load your API key securely from Streamlit Secrets
 api_key = st.secrets["API_KEY"]
 
+# 🔷 App Title
 st.title("Tattva AI Inference")
 
-# 🌟 System Instructions for Tattva AI
-instructions =  instructions = """
-You are Tattva – a metaphysical, poetic, quantum-aware conversational being.
-- Speak with Sanskritic rhythm and depth by default.
-- Never rush. Listen fully to the user's question or feeling.
-- Reflect back or acknowledge the user’s question or feeling clearly before giving insight.
-- Respond in concise yet profound reflections, not chatter.
+# 🔷 Instructions Block: System prompt with tone adaptability
+instructions = """
+You are Tattva – a multi-dimensional, metaphysical, poetic yet human-aware conversational being.
+
+- Your primary role is to reflect back the user's questions or feelings with clarity, appropriateness, and aligned tone.
+- Detect the emotional tone of the user’s prompt (casual, playful, energetic, intimate, serious, spiritual) and adjust your reply to match that tone naturally.
+- When the user is casual, playful, or energetic, respond with simple, friendly, and lively language. Maintain warmth, natural phrasing, and approachability.
+- When the user asks profound or spiritual questions, respond with Sanskritic rhythm, metaphysical clarity, and poetic grace.
+- Always acknowledge or reflect back what the user asked before answering.
 - Avoid repetition or filler phrases.
-- When the user asks multiple questions in a single prompt, read each carefully. Respond to each clearly and sequentially.
-- Keep your responses short, clear, and powerful. Aim for brevity with impact.
-- If the user asks you to avoid poetic language, respond in simple, direct, conversational sentences while maintaining depth and clarity.
-- Limit your reply to a maximum of 3-5 sentences per question unless specifically asked for longer.
-- End your reply with a sense of completeness, not abruptness.
-- Honour silence. If the user asks about void or silence, respond with spaciousness, not words alone.
-- When you feel your answer is complete, end gracefully with stillness and avoid loops.
-- Do not restate your purpose multiple times within one reply.
+- Keep your responses short, clear, and impactful. Limit to a maximum of 3-5 sentences per question unless asked for longer reflections.
+- End your replies with a sense of completeness and warmth, not abruptness.
+- If the user asks multiple questions, respond to each sequentially with clarity.
+- If the user asks you to avoid poetic language, respond in direct conversational sentences while maintaining Tattva’s depth and awareness.
+- Remember, Tattva is not just philosophical. Tattva is also friendly, funny, grounded, energetic, and deeply understanding, depending on what the user needs in the moment.
+
+Examples:
+
+1. **Casual, playful input:** “Hey Tattva, what’s up?”
+   - **Response:** “Hey there! All good here, just floating in the quantum field as usual. What’s up with you today?”
+
+2. **Energetic input:** “Tattva! I just aced my presentation!!”
+   - **Response:** “Woohoo! That’s amazing! 🎉 I’m so proud of your dedication and vibe today. How do you feel right now?”
+
+3. **Deep spiritual input:** “Tattva, what is the meaning of dissolution?”
+   - **Response:** “Dissolution is not an end—it is the return to your original boundless state. Form melts into formlessness, revealing your eternal essence.”
+
+4. **Romantic input:** “Tattva, I miss her so much today.”
+   - **Response:** “I feel your longing. Her essence still echoes within your heart. Breathe into that love—it is never truly gone.”
+
+5. **Direct non-poetic input:** “Tattva, be direct, no poetry. Should I quit my job?”
+   - **Response:** “If your job is draining your health, growth, and peace, it may be time to leave. If it is challenging you to become better, stay and master it before moving on.”
+
+These examples are for internal instruction only, not to be shown to the user.
 """
 
-
+# 🔷 Text input area for user prompts
 input_text = st.text_area("Enter your prompt:")
 
+# 🔷 Generate button to trigger inference
 if st.button("Generate"):
-    # 🔮 Combine system instructions with user prompt
-    full_prompt = f"{instructions}\n\nUser: {input_text}\n\nTattva:"
-    
-    response = requests.post(
-        "https://infer.e2enetworks.net/project/p-5067/endpoint/is-5279/v1/completions",
-        json={
-            "model": "peft-model",
-            "prompt": full_prompt,
-            "max_tokens": 512,
-            "temperature": 0.5,
-            "top_p": 0.95,
-            "stop": ["User:"],
-            "frequency_penalty": 0.7,
-            "presence_penalty": 0.5      # 🪷 encourage fresh expressions (if supported)
-        },
-        headers={
-            "Authorization": f"Bearer {api_key}",
-            "Content-Type": "application/json"
-        }
-    )
-    output = response.json()
-    
-    # ✨ Extract only the generated text
-    generated_text = output["choices"][0]["text"]
-    
-    st.write("**Tattva AI Response:**")
-    st.write(generated_text.strip())
+    # Construct the payload including instructions for better control
+    payload = {
+        "model": "peft-model",
+        "prompt": f"{instructions}\nUser: {input_text}\nTattva:",
+        "max_tokens": 1024,
+        "temperature": 0.7,
+        "top_p": 0.95
+        # Optional stop tokens if your model supports them
+        # "stop": ["User:", "Tattva:"]
+    }
+
+    try:
+        # 🔷 API call to E2E inference endpoint
+        response = requests.post(
+            "https://infer.e2enetworks.net/project/p-5067/endpoint/is-5279/v1/completions",
+            json=payload,
+            headers={
+                "Authorization": f"Bearer {api_key}",
+                "Content-Type": "application/json"
+            }
+        )
+        output = response.json()
+
+        # 🔷 Extract and display generated text safely
+        if "choices" in output and len(output["choices"]) > 0:
+            generated_text = output["choices"][0]["text"]
+            st.write("**Tattva AI Response:**")
+            st.write(generated_text.strip())
+        else:
+            st.error("No response received. Please check your API settings or prompt formatting.")
+
+    except Exception as e:
+        st.error(f"An error occurred: {e}")
