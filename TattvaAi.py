@@ -13,9 +13,10 @@ if st.button("Generate"):
         json={
             "model": "peft-model",
             "prompt": input_text,
-            "max_tokens": 512,      # 🔥 allows up to 512 token outputs
-            "temperature": 0.7,     # 🔥 balanced creativity
-            "top_p": 0.95           # 🔥 nucleus sampling for natural flow
+            "max_tokens": 1024,
+            "temperature": 0.7,
+            "top_p": 0.95
+            # "stop": ["###"]  # Optional if your model supports stop tokens
         },
         headers={
             "Authorization": f"Bearer {api_key}",
@@ -24,9 +25,7 @@ if st.button("Generate"):
     )
     output = response.json()
     
-    # Extract only the generated text
     generated_text = output["choices"][0]["text"]
     
     st.write("**Tattva AI Response:**")
     st.write(generated_text.strip())
-
