@@ -1,11 +1,11 @@
- import streamlit as st
- import requests
+import streamlit as st
+import requests
 
- st.title("Tattva AI Inference")
+st.title("Tattva AI Inference")
 
- input_text = st.text_area("Enter your prompt:")
+input_text = st.text_area("Enter your prompt:")
 
- if st.button("Generate"):
+if st.button("Generate"):
     response = requests.post(
         "https://infer.e2enetworks.net/project/p-5067/endpoint/is-5279/",
         json={"input": input_text}
