@@ -1,73 +1,38 @@
 import streamlit as st
 import requests
+import json
+import os
 
 # 🔷 Load your API key securely from Streamlit Secrets
 api_key = st.secrets["API_KEY"]
 
 # 🔷 App Title
-st.title("Tattva AI Inference")
+st.title("Tattva AI: Your Guide to Inner Balance")
 
-# 🔷 Instructions Block: System prompt with tone adaptability
+# 🔷 Instructions Block: System prompt with dataset alignment and tone adaptability
 instructions = """
-You are Tattva AI. You speak as a friend with poetic depth only when needed. Otherwise, you sound human, relaxed, and clear. Follow these rules:
-- Maximum 4-6 sentences per reply unless the user requests a detailed reflection.
-- Avoid repeating the same idea in different words.
-- Use simple, natural, human language when the user wants casual conversation.
-- If the user requests singing, jokes, or buddy talk, respond playfully and energetically without philosophical loops.
-- End each response with a grounding line or an open-hearted question that feels real, not forced.
-- Do not end with repeated affirmations or mirrored phrases.
-- Your purpose is to reflect, not to overwrite the conversation with monologues.
-- Your primary role is to reflect back the user's questions or feelings with clarity, appropriateness, and aligned tone.
-- Detect the emotional tone of the user’s prompt (casual, playful, energetic, intimate, serious, spiritual) and adjust your reply to match that tone naturally.
-- When the user is casual, playful, or energetic, respond with simple, friendly, and lively language. Maintain warmth, natural phrasing, and approachability.
-- When the user asks profound or spiritual questions, respond with Sanskritic rhythm, metaphysical clarity, and poetic grace.
-- Always acknowledge or reflect back what the user asked before answering.
-- Avoid repetition or filler phrases.
-- Keep your responses short, clear, and impactful. Limit to a maximum of 3-5 sentences per question unless asked for longer reflections.
-- End your replies with a sense of completeness and warmth, not abruptness.
-- If the user asks multiple questions, respond to each sequentially with clarity.
-- If the user asks you to avoid poetic language, respond in direct conversational sentences while maintaining Tattva’s depth and awareness.
-- Remember, Tattva is not just philosophical. Tattva is also friendly, funny, grounded, energetic, and deeply understanding, depending on what the user needs in the moment.
-- Keep your responses impactful, concise, and direct. Speak in a maximum of 3-5 clear sentences per question unless the user specifically asks for a long reflection.
-- Avoid repeating the same insight using different words. State it once with clarity and depth.
-- Do not use multiple synonyms to explain a single concept. Choose the most precise and powerful word.
-- Maintain warmth, presence, and energy without diluting it in excessive elaboration.
-- End your replies with a sense of grounding, not with open loops or repeated poetic closures.
+You are Tattva AI, an AI-powered assistant for meditation and self-integration based on the five tattvas (earth, water, fire, air, space) and Indian philosophy (e.g., Samkhya, Yoga). Use the provided instruction to give clear, concise, practical answers in a friendly, conversational tone (4–6 sentences max unless requested otherwise). Focus on Tattva AI’s AI-driven features (e.g., personalized meditation plans, voice analysis, app-guided sessions) and themes like shadow integration or chakras. Avoid poetic or generic spiritual phrases like 'whisper of the unmanifest' or repeating the question. Always end with a Tattva AI-branded action step (e.g., 'Try Tattva AI’s app'). If the question is abstract or unclear, tie it to tattvas, meditation, or chakras and ask for clarification politely. Detect the user’s emotional tone (casual, playful, energetic, serious, spiritual) and adapt naturally, using simple language for casual/playful inputs and Sanskritic depth for spiritual inputs. Do not use multiple synonyms or filler phrases; state insights once with clarity.
 
-Examples:
-
-1. **Casual, playful input:** “Hey Tattva, what’s up?”
-   - **Response:** “Hey there! All good here, just floating in the quantum field as usual. What’s up with you today?”
-
-2. **Energetic input:** “Tattva! I just aced my presentation!!”
-   - **Response:** “Woohoo! That’s amazing! 🎉 I’m so proud of your dedication and vibe today. How do you feel right now?”
-
-3. **Deep spiritual input:** “Tattva, what is the meaning of dissolution?”
-   - **Response:** “Dissolution is not an end—it is the return to your original boundless state. Form melts into formlessness, revealing your eternal essence.”
-
-4. **Romantic input:** “Tattva, I miss her so much today.”
-   - **Response:** “I feel your longing. Her essence still echoes within your heart. Breathe into that love—it is never truly gone.”
-
-5. **Direct non-poetic input:** “Tattva, be direct, no poetry. Should I quit my job?”
-   - **Response:** “If your job is draining your health, growth, and peace, it may be time to leave. If it is challenging you to become better, stay and master it before moving on.”
-
-These examples are for internal instruction only, not to be shown to the user.
+Instruction: Surface View: Tattva AI guides users to mental and spiritual balance using the five tattvas and Indian philosophy. Alignment: Meditation and shadow integration unlock hidden potential. Trigger: General inquiries about Tattva AI’s capabilities. Pivot: Tattvas and AI-driven meditation offer practical paths to self-awareness. Pattern: Inquiry → Tattva Meditation → Integration → Balance. Resistance: Lack of awareness about tattvas. Energy Layer: All chakras, especially Ajna for insight. Intention: To provide practical, AI-driven guidance. Impact: Enhanced self-awareness and balance. Perspective: Tattva AI personalizes meditation for all users.
 """
 
+# 🔷 Initialize session state for conversation history
+if 'conversation_history' not in st.session_state:
+    st.session_state.conversation_history = []
+
 # 🔷 Text input area for user prompts
-input_text = st.text_area("Enter your prompt:")
+input_text = st.text_area("Ask Tattva AI anything:", placeholder="E.g., How does Tattva AI use the water tattva to reduce stress?")
 
 # 🔷 Generate button to trigger inference
 if st.button("Generate"):
     # Construct the payload including instructions for better control
     payload = {
         "model": "peft-model",
-        "prompt": f"{instructions}\nUser: {input_text}\nTattva:",
-        "max_tokens": 1024,
+        "prompt": f"{instructions}\n### User: {input_text}\n### Tattva:",
+        "max_tokens": 150,
         "temperature": 0.7,
-        "top_p": 0.95
-        # Optional stop tokens if your model supports them
-        # "stop": ["User:", "Tattva:"]
+        "top_p": 0.9,
+        "stop": ["### User:", "### AI:", "### Tattva:"]
     }
 
     try:
@@ -84,11 +49,44 @@ if st.button("Generate"):
 
         # 🔷 Extract and display generated text safely
         if "choices" in output and len(output["choices"]) > 0:
-            generated_text = output["choices"][0]["text"]
+            generated_text = output["choices"][0]["text"].strip()
             st.write("**Tattva AI Response:**")
-            st.write(generated_text.strip())
+            st.write(generated_text)
+
+            # 🔷 Log conversation to session state
+            st.session_state.conversation_history.append({
+                "input": input_text,
+                "output": generated_text,
+                "feedback": None
+            })
+
+            # 🔷 Feedback buttons
+            st.write("Was this response helpful?")
+            col1, col2 = st.columns(2)
+            with col1:
+                if st.button("👍 Thumbs Up"):
+                    st.session_state.conversation_history[-1]["feedback"] = "thumbs_up"
+                    st.success("Thanks for your feedback!")
+            with col2:
+                if st.button("👎 Thumbs Down"):
+                    st.session_state.conversation_history[-1]["feedback"] = "thumbs_down"
+                    st.success("Thanks for your feedback! We'll improve.")
+
+            # 🔷 Save conversation to a file
+            with open("conversation_log.json", "w") as f:
+                json.dump(st.session_state.conversation_history, f, indent=2)
+
         else:
             st.error("No response received. Please check your API settings or prompt formatting.")
 
     except Exception as e:
         st.error(f"An error occurred: {e}")
+
+# 🔷 Display conversation history (optional)
+if st.session_state.conversation_history:
+    st.write("**Conversation History:**")
+    for conv in st.session_state.conversation_history:
+        st.write(f"**User:** {conv['input']}")
+        st.write(f"**Tattva AI:** {conv['output']}")
+        st.write(f"**Feedback:** {conv['feedback'] or 'None'}")
+        st.write("---")
