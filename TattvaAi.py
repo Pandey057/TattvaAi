@@ -20,5 +20,10 @@ if st.button("Generate"):
         }
     )
     output = response.json()
-    st.write(output)
+    
+    # Extract only the generated text
+    generated_text = output["choices"][0]["text"]
+    
+    st.write("**Tattva AI Response:**")
+    st.write(generated_text.strip())
 
