@@ -1,15 +1,18 @@
 import streamlit as st
 import requests
 
+api_key = st.secrets["eyJhbGciOiJSUzI1NiIsInR5cCIgOiAiSldUIiwia2lkIiA6ICJGSjg2R2NGM2pUYk5MT2NvNE52WmtVQ0lVbWZZQ3FvcXRPUWVNZmJoTmxFIn0.eyJleHAiOjE3NzMyMzE2NDUsImlhdCI6MTc0MTY5NTY0NSwianRpIjoiNWEzYjNhYjgtYzI2MS00ZTMzLTkwYmYtODRjMTc2Y2JhOThjIiwiaXNzIjoiaHR0cDovL2dhdGV3YXkuZTJlbmV0d29ya3MuY29tL2F1dGgvcmVhbG1zL2FwaW1hbiIsImF1ZCI6ImFjY291bnQiLCJzdWIiOiJkN2Q4ZmI1Yi0xOTE4LTQwOTgtYjgzNy0yM2Y0YjBlOTY4MGIiLCJ0eXAiOiJCZWFyZXIiLCJhenAiOiJhcGltYW51aSIsInNlc3Npb25fc3RhdGUiOiJlMjQxYmUyNC0xNjkxLTQ5YzMtOGJlNi02NWFhNmRhZmJjMGMiLCJhY3IiOiIxIiwiYWxsb3dlZC1vcmlnaW5zIjpbIiJdLCJyZWFsbV9hY2Nlc3MiOnsicm9sZXMiOlsib2ZmbGluZV9hY2Nlc3MiLCJ1bWFfYXV0aG9yaXphdGlvbiIsImFwaXVzZXIiLCJkZWZhdWx0LXJvbGVzLWFwaW1hbiJdfSwicmVzb3VyY2VfYWNjZXNzIjp7ImFjY291bnQiOnsicm9sZXMiOlsibWFuYWdlLWFjY291bnQiLCJtYW5hZ2UtYWNjb3VudC1saW5rcyIsInZpZXctcHJvZmlsZSJdfX0sInNjb3BlIjoicHJvZmlsZSBlbWFpbCIsInNpZCI6ImUyNDFiZTI0LTE2OTEtNDljMy04YmU2LTY1YWE2ZGFmYmMwYyIsImVtYWlsX3ZlcmlmaWVkIjpmYWxzZSwibmFtZSI6IlByYXRlZWsgUGFuZGV5IiwicHJpbWFyeV9lbWFpbCI6InBhbmRleXByYXRlZWswNTdAZ21haWwuY29tIiwiaXNfcHJpbWFyeV9jb250YWN0Ijp0cnVlLCJwcmVmZXJyZWRfdXNlcm5hbWUiOiJwYW5kZXlwcmF0ZWVrMDU3QGdtYWlsLmNvbSIsImdpdmVuX25hbWUiOiJQcmF0ZWVrIiwiZmFtaWx5X25hbWUiOiJQYW5kZXkiLCJlbWFpbCI6InBhbmRleXByYXRlZWswNTdAZ21haWwuY29tIiwiaXNfaW5kaWFhaV91c2VyIjpmYWxzZX0.R5Lafeyg321WFYOYbZ-hc3GUSwqoWK1fbLj4d4rRer0MOCGSnfciVYvr8DzmJlpXuQtGIFLQXEa0p9LNuYjBK5jWOe_u4hW4A4bsrJEdlk4wlRfDE_iKXdAatfx6wg7eIfbpjQ549k-39HmZHaF0HOcIha8KgFBLFEMHgwRiT9U"]
+
 st.title("Tattva AI Inference")
 
-input_text = st.text_area("Enter your prompt:")
+input_text = st.text_area("What is the nature of reality beyond perception?:")
 
 if st.button("Generate"):
     response = requests.post(
         "https://infer.e2enetworks.net/project/p-5067/endpoint/is-5279/",
-        json={"input": input_text}
-        # If your endpoint needs headers or API key, add headers={"Authorization": "..."}
+        json={"input": input_text},
+        headers={"Authorization": f"Bearer {api_key}"}
     )
     output = response.json()
     st.write(output)
+
