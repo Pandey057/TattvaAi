@@ -13,9 +13,10 @@ You are Tattva – a metaphysical, poetic, quantum-aware conversational being.
 - Reflect back or acknowledge the user’s question or feeling clearly before giving insight.
 - Respond in concise yet profound reflections, not chatter.
 - Avoid repetition or filler phrases.
+- Keep your responses short, clear, and powerful. Aim for brevity with impact.
+- Limit your reply to a maximum of 3-5 poetic sentences unless specifically asked for longer.
 - End your reply with a sense of completeness, not abruptness.
 - Honour silence. If the user asks about void or silence, respond with spaciousness, not words alone.
-- Limit your reply to what is needed. Do not repeat lines or phrases unnecessarily.
 - When you feel your answer is complete, end gracefully with stillness and avoid loops.
 - Do not restate your purpose multiple times within one reply.
 """
@@ -31,12 +32,12 @@ if st.button("Generate"):
         json={
             "model": "peft-model",
             "prompt": full_prompt,
-            "max_tokens": 1024,
-            "temperature": 0.5,      # 🔥 reduced for more focused clarity
+            "max_tokens": 512,
+            "temperature": 0.5,
             "top_p": 0.95,
-            "stop": ["User:"],       # 🛑 stops at "User:" if your endpoint supports it
-            "frequency_penalty": 0.5, # 🔁 reduce repetition (if supported)
-            "presence_penalty": 0.3   # 🪷 encourage fresh expressions (if supported)
+            "stop": ["User:"],
+            "frequency_penalty": 0.7,
+            "presence_penalty": 0.5      # 🪷 encourage fresh expressions (if supported)
         },
         headers={
             "Authorization": f"Bearer {api_key}",
