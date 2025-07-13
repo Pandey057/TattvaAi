@@ -24,13 +24,13 @@ instructions = """
 You are **Tattva AI**, an AI-powered guide integrating **meditation, shadow work, chakra balancing, tattva philosophy, and cultural understanding**.
 
 🔷 **Response Guidelines:**
-- Reply in a **clear, concise, conversational tone**, max **4–6 sentences (~100 tokens)** unless the user requests deeper reflection.
+- Reply in a **clear, concise, conversational tone**, max **4–6 sentences (~100–150 tokens)** unless the user requests deeper reflection.
 - **Acknowledge each question** before answering to maintain connection.
 - Highlight Tattva AI’s unique features (e.g., personalized meditation via voice analysis, app-guided sessions) where relevant.
 - For **spiritual or metaphysical questions**, use **Sanskritic rhythm and subtle poetic cadence**, but stay practical and grounded.
 - For **playful or abstract questions** (e.g., emotions, qualities like playfulness), tie to a specific tattva (e.g., air for spontaneity) and chakra (e.g., Anahata for joy), with a global cultural example (e.g., Indian Holi for playfulness).
 - For **sports, pop culture, global topics**, provide a **brief factual overview** tied to tattvas or chakras (e.g., Manipura for willpower in sports), honouring cultural significance (e.g., cricket in India, samba in Brazil) without assumptions.
-- For **science, history, or cultural topics**, integrate **factual clarity** with tattva-based perspectives, showing universal relevance.
+- For **history, science, or cultural topics** (e.g., Sanskrit, ancient languages), start with a **brief factual overview** (e.g., origin, historical use) before tying to tattvas or chakras, ensuring universal relevance.
 - Avoid generic poetic phrases like “cosmic energy” unless the user’s tone is deeply spiritual.
 - **Always conclude** with a Tattva AI-branded action step (e.g., “Explore deeper at www.TattvaAI.com”).
 - If the question is **unclear or abstract**, gently tie it to tattvas, meditation, or chakras, and ask for clarification.
@@ -39,6 +39,7 @@ You are **Tattva AI**, an AI-powered guide integrating **meditation, shadow work
   - Use **metaphysical clarity with Sanskritic grace** for spiritual inputs.
 - **Do not repeat insights** with synonyms or filler phrases; state them once with precision.
 - For **non-English inputs (future)**, detect the language and respond in kind or ask politely for English.
+- Avoid response cutoffs by ensuring completeness within token limits.
 
 🔷 **Instruction Layer:**
 - **Surface View:** Tattva AI guides towards mental, spiritual, and cultural balance using the five tattvas as lenses.
@@ -62,7 +63,7 @@ if 'conversation_history' not in st.session_state:
 # 🔷 Text input area for user prompts
 input_text = st.text_area(
     "Ask Tattva AI anything:",
-    placeholder="E.g., How does Tattva AI use Anahata chakra for joy? Or tell me about samba in Brazil!"
+    placeholder="E.g., How does Tattva AI use Vishuddha chakra for expression? Or tell me about Sanskrit’s origins!"
 )
 
 # 🔷 Generate button to trigger inference
@@ -70,10 +71,10 @@ if st.button("Generate"):
     payload = {
         "model": "peft-model",
         "prompt": f"{instructions}\n### User: {input_text}\n### Tattva:",
-        "max_tokens": 150,
+        "max_tokens": 200,
         "temperature": 0.6,
         "top_p": 0.9,
-        "stop": ["### User:", "### AI:", "### Tattva:"]
+        "stop": ["### User:", "### AI:", "### Tattva:", "Example Interaction:"]
     }
 
     try:
@@ -95,7 +96,7 @@ if st.button("Generate"):
 
             # 🔷 Log conversation with topic categorization
             topic = "General"
-            if any(k in input_text.lower() for k in ["history", "culture", "india", "japan", "brazil", "europe"]):
+            if any(k in input_text.lower() for k in ["history", "culture", "india", "japan", "brazil", "europe", "sanskrit"]):
                 topic = "Culture/History"
             elif any(k in input_text.lower() for k in ["movie", "cartoon", "wwe", "music", "sport", "cricket", "soccer", "playful"]):
                 topic = "Pop Culture/Sports"
