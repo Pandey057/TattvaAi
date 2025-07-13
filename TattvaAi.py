@@ -5,13 +5,19 @@ api_key = st.secrets["API_KEY"]
 
 st.title("Tattva AI Inference")
 
-input_text = st.text_area("What is the nature of reality beyond perception?:")
+input_text = st.text_area("Enter your prompt:")
 
 if st.button("Generate"):
     response = requests.post(
-        "https://infer.e2enetworks.net/project/p-5067/endpoint/is-5279/",
-        json={"input": input_text},
-        headers={"Authorization": f"Bearer {api_key}"}
+        "https://infer.e2enetworks.net/project/p-5067/endpoint/is-5279/v1/completions",
+        json={
+            "model": "peft-model",
+            "prompt": input_text
+        },
+        headers={
+            "Authorization": f"Bearer {api_key}",
+            "Content-Type": "application/json"
+        }
     )
     output = response.json()
     st.write(output)
