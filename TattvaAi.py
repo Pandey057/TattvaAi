@@ -12,7 +12,10 @@ if st.button("Generate"):
         "https://infer.e2enetworks.net/project/p-5067/endpoint/is-5279/v1/completions",
         json={
             "model": "peft-model",
-            "prompt": input_text
+            "prompt": input_text,
+            "max_tokens": 512,      # 🔥 allows up to 512 token outputs
+            "temperature": 0.7,     # 🔥 balanced creativity
+            "top_p": 0.95           # 🔥 nucleus sampling for natural flow
         },
         headers={
             "Authorization": f"Bearer {api_key}",
