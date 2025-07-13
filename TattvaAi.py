@@ -23,7 +23,7 @@ if 'conversation_history' not in st.session_state:
     st.session_state.conversation_history = []
 
 # 🔷 Text input area for user prompts
-input_text = st.text_area("Ask Tattva AI anything:", placeholder="E.g., How does Tattva AI use the water tattva to reduce stress?")
+input_text = st.text_area("Ask Tattva AI anything:", placeholder="E.g., How does Tattva AI use the Ajna chakra for self-awareness?")
 
 # 🔷 Generate button to trigger inference
 if st.button("Generate"):
@@ -32,7 +32,7 @@ if st.button("Generate"):
         "model": "peft-model",
         "prompt": f"{instructions}\n### User: {input_text}\n### Tattva:",
         "max_tokens": 240,
-        "temperature": 0.7,
+        "temperature": 0.6,
         "top_p": 0.9,
         "stop": ["### User:", "### AI:", "### Tattva:"]
     }
@@ -57,12 +57,14 @@ if st.button("Generate"):
 
             # 🔷 Log conversation to session state
             st.session_state.conversation_history.append({
+                "instruction": instructions.split("Instruction:")[1].strip() if "Instruction:" in instructions else "Default instruction",
                 "input": input_text,
                 "output": generated_text,
-                "feedback": None
+                "feedback": None,
+                "text_feedback": ""
             })
 
-            # 🔷 Feedback buttons
+            # 🔷 Feedback buttons and text input
             st.write("Was this response helpful?")
             col1, col2 = st.columns(2)
             with col1:
@@ -73,6 +75,9 @@ if st.button("Generate"):
                 if st.button("👎 Thumbs Down"):
                     st.session_state.conversation_history[-1]["feedback"] = "thumbs_down"
                     st.success("Thanks for your feedback! We'll improve.")
+            text_feedback = st.text_input("Tell us why (optional):", key=f"feedback_{len(st.session_state.conversation_history)}")
+            if text_feedback:
+                st.session_state.conversation_history[-1]["text_feedback"] = text_feedback
 
             # 🔷 Save conversation to a file
             with open("conversation_log.json", "w") as f:
@@ -84,11 +89,12 @@ if st.button("Generate"):
     except Exception as e:
         st.error(f"An error occurred: {e}")
 
-# 🔷 Display conversation history (optional)
+# 🔷 Display conversation history (optional for debugging)
 if st.session_state.conversation_history:
-    st.write("**Conversation History:**")
+    st.write("**Conversation History (Debug):**")
     for conv in st.session_state.conversation_history:
         st.write(f"**User:** {conv['input']}")
         st.write(f"**Tattva AI:** {conv['output']}")
         st.write(f"**Feedback:** {conv['feedback'] or 'None'}")
+        st.write(f"**Text Feedback:** {conv['text_feedback'] or 'None'}")
         st.write("---")
