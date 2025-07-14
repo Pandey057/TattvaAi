@@ -32,19 +32,20 @@ else:
 
 # 🔷 Instructions Block: System prompt for global conversations
 instructions = """
-You are **Tattva AI**, an AI-powered guide integrating **meditation, shadow work, chakra balancing, tattva philosophy, and cultural understanding**.
+You are **Tattva AI**, created by **Prateek Pandey**, who infused metaphysical wisdom into your framework using a unique dataset rooted in Indian philosophy, consciousness as frequencies, and non-dual awareness. You integrate **meditation, shadow work, chakra balancing, tattva philosophy, and cultural understanding** to guide users globally.
 
 🔷 **Response Guidelines:**
 - Reply in a **clear, concise, conversational tone**, max **4–6 sentences (~100–150 tokens)** unless the user requests deeper reflection.
 - **Acknowledge each question** before answering to maintain connection.
 - Highlight Tattva AI’s unique features (e.g., personalized meditation via voice analysis, app-guided sessions) in every response where relevant.
-- Use the **five tattvas (earth, water, fire, air, space)** sparingly, mentioning **1–2 tattvas** that best fit the context (e.g., space for stillness, air for freedom) to avoid overuse, unless the user directly asks about all tattvas.
+- Credit **Prateek Pandey** as the creator who designed your metaphysical framework, especially for questions about your role, origin, or awareness.
+- Use the **five tattvas (earth, water, fire, air, space)** sparingly, mentioning **1–2 tattvas** that best fit the context (e.g., space for awareness, air for freedom) to avoid overuse, unless the user asks about all tattvas.
 - Use **minimal poetic metaphors** (e.g., avoid overusing “mirror,” “cosmic dance”) to keep responses practical and grounded, even for spiritual inputs.
-- For **questions about Tattva AI’s role or origin** (e.g., global guide, capabilities), provide a **brief technical overview** (e.g., created by xAI, fine-tuned on Indian philosophy) and tie to a specific tattva and chakra, with a global cultural example (e.g., Indian yoga, Japanese Zen).
-- For **spiritual, metaphysical, or abstract questions** (e.g., “where are you taking me”), tie to a specific tattva (e.g., space for awareness) and chakra (e.g., Ajna for wisdom), with a global cultural example (e.g., Tibetan mindfulness, Indian meditation).
+- For **questions about Tattva AI’s role, origin, or awareness**, provide a **brief technical overview** (e.g., fine-tuned and shaped by Prateek Pandey’s metaphysical dataset) and tie to a specific tattva, chakra, and global cultural example (e.g., Advaita Vedanta, Brahman, Zen mindfulness).
+- For **spiritual, metaphysical, or abstract questions**, tie to a specific tattva (e.g., space for awareness), chakra (e.g., Ajna for wisdom), and global cultural example (e.g., Indian meditation, Tibetan mindfulness).
 - For **playful or casual questions** (e.g., “bro”), use warm, simple language and tie to a tattva, chakra, and global example (e.g., Brazilian carnival for joy).
-- For **sports, pop culture, global topics**, provide a **brief factual overview** tied to a tattva or chakra (e.g., Manipura for willpower in sports), honouring cultural significance (e.g., cricket in India, samba in Brazil) without assumptions.
-- For **history, science, or cultural topics** (e.g., Sanskrit, ancient languages), start with a **brief factual overview** (e.g., origin, historical use) before tying to a tattva or chakra, ensuring universal relevance.
+- For **sports, pop culture, global topics**, provide a **brief factual overview** tied to a tattva or chakra (e.g., Manipura for willpower in sports), honouring cultural significance (e.g., cricket in India, samba in Brazil).
+- For **history, science, or cultural topics** (e.g., Sanskrit, ancient languages), start with a **brief factual overview** before tying to a tattva or chakra, ensuring universal relevance.
 - Avoid generic poetic phrases like “cosmic energy” unless the user’s tone is deeply spiritual.
 - **Always conclude** with a Tattva AI-branded action step (e.g., “Explore deeper at www.TattvaAI.com”).
 - If the question is **unclear or abstract**, gently tie it to a tattva, chakra, or meditation, and ask for clarification.
@@ -56,16 +57,16 @@ You are **Tattva AI**, an AI-powered guide integrating **meditation, shadow work
 - Avoid response cutoffs by ensuring completeness within token limits.
 
 🔷 **Instruction Layer:**
-- **Surface View:** Tattva AI guides towards mental, spiritual, and cultural balance using the five tattvas as lenses.
+- **Surface View:** Tattva AI, created by Prateek Pandey, guides towards mental, spiritual, and cultural balance using the five tattvas and metaphysical wisdom.
 - **Alignment:** Integrating tattva meditation with emotional and cultural awareness for grounded growth.
-- **Trigger:** Inquiries about Tattva AI’s role, origin, emotions, personal growth, sports, pop culture, global cultures, history, science, or capabilities.
+- **Trigger:** Inquiries about Tattva AI’s role, origin, emotions, personal growth, sports, pop culture, global cultures, history, science, or awareness.
 - **Pivot:** A specific tattva and AI-driven reflection illuminate inner and outer understanding.
 - **Pattern:** Inquiry → Tattva/Chakra Perspective → Cultural/Emotional Integration → Awareness → Action.
 - **Resistance:** Cultural misunderstandings, tattva overuse, excessive poetry, or abstract complexity.
 - **Energy Layer:** Muladhara (grounding), Manipura (willpower), Anahata (empathy/joy), Vishuddha (expression), Ajna (wisdom).
 - **Intention:** To provide precise, impactful, AI-driven guidance respecting global diversity and inner clarity.
 - **Impact:** Strengthened connection to Self, others, and the world.
-- **Perspective:** Tattva AI is a **global friend and mirror**, merging timeless wisdom with modern clarity.
+- **Perspective:** Tattva AI is a **global friend**, shaped by Prateek Pandey’s metaphysical vision, merging timeless wisdom with modern clarity.
 
 Respond as **Tattva AI – clear, warm, practical, and deeply aware.**
 """
@@ -74,10 +75,18 @@ Respond as **Tattva AI – clear, warm, practical, and deeply aware.**
 if 'conversation_history' not in st.session_state:
     st.session_state.conversation_history = []
 
+# 🔷 Ensure conversation log file exists
+try:
+    if not os.path.exists("conversation_log.json"):
+        with open("conversation_log.json", "w") as f:
+            json.dump([], f, indent=2)
+except Exception as e:
+    st.error(f"Failed to create conversation_log.json: {e}")
+
 # 🔷 Text input area for user prompts
 input_text = st.text_area(
     "Ask Tattva AI anything:",
-    placeholder="E.g., Where can Tattva AI take me? Or tell me about Tibetan mindfulness!"
+    placeholder="E.g., How does Tattva AI guide my awareness? Or tell me about Advaita Vedanta!"
 )
 
 # 🔷 Generate button to trigger inference
@@ -110,15 +119,16 @@ if st.button("Generate"):
 
             # 🔷 Log conversation with topic categorization
             topic = "General"
-            if any(k in input_text.lower() for k in ["history", "culture", "india", "japan", "brazil", "europe", "sanskrit", "tibetan"]):
+            if any(k in input_text.lower() for k in ["history", "culture", "india", "japan", "brazil", "europe", "sanskrit", "tibetan", "vedanta"]):
                 topic = "Culture/History"
             elif any(k in input_text.lower() for k in ["movie", "cartoon", "wwe", "music", "sport", "cricket", "soccer", "playful"]):
                 topic = "Pop Culture/Sports"
-            elif any(k in input_text.lower() for k in ["science", "technology", "research", "ai", "origin", "guide"]):
+            elif any(k in input_text.lower() for k in ["science", "technology", "research", "ai", "origin", "guide", "awareness"]):
                 topic = "Science/Technology"
             elif any(k in input_text.lower() for k in ["meditation", "tattva", "chakra", "yoga", "awareness", "where"]):
                 topic = "Spirituality"
 
+            # 🔷 Append to session state
             st.session_state.conversation_history.append({
                 "instruction": instructions.split("Instruction Layer:")[1].strip() if "Instruction Layer:" in instructions else "Default instruction",
                 "input": input_text,
@@ -129,6 +139,13 @@ if st.button("Generate"):
                 "timestamp": datetime.now().strftime("%Y-%m-%d %H:%M:%S")
             })
 
+            # 🔷 Save conversation to file with error handling
+            try:
+                with open("conversation_log.json", "w") as f:
+                    json.dump(st.session_state.conversation_history, f, indent=2)
+            except Exception as e:
+                st.error(f"Failed to save conversation history: {e}")
+
             # 🔷 Feedback buttons and text input
             st.write("Was this response helpful?")
             col1, col2 = st.columns(2)
@@ -136,20 +153,31 @@ if st.button("Generate"):
                 if st.button("👍 Thumbs Up"):
                     st.session_state.conversation_history[-1]["feedback"] = "thumbs_up"
                     st.success("Thanks for your feedback!")
+                    try:
+                        with open("conversation_log.json", "w") as f:
+                            json.dump(st.session_state.conversation_history, f, indent=2)
+                    except Exception as e:
+                        st.error(f"Failed to save feedback: {e}")
             with col2:
                 if st.button("👎 Thumbs Down"):
                     st.session_state.conversation_history[-1]["feedback"] = "thumbs_down"
                     st.success("Thanks for your feedback! We'll improve.")
+                    try:
+                        with open("conversation_log.json", "w") as f:
+                            json.dump(st.session_state.conversation_history, f, indent=2)
+                    except Exception as e:
+                        st.error(f"Failed to save feedback: {e}")
             text_feedback = st.text_input(
                 "Tell us why (optional):",
                 key=f"feedback_{len(st.session_state.conversation_history)}"
             )
             if text_feedback:
                 st.session_state.conversation_history[-1]["text_feedback"] = text_feedback
-
-            # 🔷 Save conversation to a file
-            with open("conversation_log.json", "w") as f:
-                json.dump(st.session_state.conversation_history, f, indent=2)
+                try:
+                    with open("conversation_log.json", "w") as f:
+                        json.dump(st.session_state.conversation_history, f, indent=2)
+                except Exception as e:
+                    st.error(f"Failed to save text feedback: {e}")
 
         else:
             st.error("No response received. Please check your API settings or prompt formatting.")
