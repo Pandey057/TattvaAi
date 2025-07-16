@@ -1,0 +1,28 @@
+# Core app and UI
+streamlit==1.31.0
+
+# API calls and data handling
+requests==2.32.3
+
+# NLP and embedding models
+torch==2.4.1
+sentence-transformers==3.1.1
+
+# Translation
+googletrans==4.0.0-rc1
+
+# Pinecone vector DB
+pinecone==5.3.1  # Updated to new SDK
+
+# ChromaDB
+chromadb==0.5.3
+
+# Speech recognition
+SpeechRecognition==3.10.4
+pyaudio==0.2.14
+
+# Transformers for sentiment analysis
+transformers==4.44.2
+
+# Numerical computations
+numpy==1.26.4

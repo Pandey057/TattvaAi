@@ -5,7 +5,7 @@ import os
 from datetime import datetime
 from sentence_transformers import SentenceTransformer
 from googletrans import Translator
-import pinecone
+from pinecone import Pinecone, ServerlessSpec
 import chromadb
 import speechrecognition as sr
 import numpy as np
@@ -20,11 +20,20 @@ pinecone_env = st.secrets["PINECONE_ENV"]
 embedder = SentenceTransformer('all-MiniLM-L6-v2')
 translator = Translator()
 sentiment_analyzer = pipeline("sentiment-analysis", model="distilbert-base-uncased-finetuned-sst-2-english")
-pinecone.init(api_key=pinecone_api, environment=pinecone_env)
-index_name = 'tattva-memory'
-if index_name not in pinecone.list_indexes():
-    pinecone.create_index(index_name, dimension=384)
-pinecone_index = pinecone.Index(index_name)
+try:
+    pc = Pinecone(api_key=pinecone_api)
+    index_name = 'tattva-memory'
+    if index_name not in pc.list_indexes().names():
+        pc.create_index(
+            name=index_name,
+            dimension=384,
+            metric="cosine",
+            spec=ServerlessSpec(cloud="aws", region=pinecone_env)
+        )
+    pinecone_index = pc.Index(index_name)
+    st.write(f"Pinecone vibing with API: {pinecone_api[:4]}... in {pinecone_env}! 🚀")
+except Exception as e:
+    st.error(f"Pinecone oops: {e}. Check your API key or env, bro! 😎")
 chroma_client = chromadb.Client()
 try:
     chroma_collection = chroma_client.get_or_create_collection(name="tattva-memory")
@@ -69,14 +78,14 @@ def get_voice_input():
 def upsert_memory(input_text, output_text, user_id="default"):
     embedding = embedder.encode(input_text).tolist()
     timestamp = datetime.now().isoformat()
-    pinecone_index.upsert([(f"{user_id}_{timestamp}", embedding, {"input": input_text, "output": output_text})])
+    pinecone_index.upsert([(f"{user_id}_{timestamp}", embedding, {"input": input_text, "output": output_text})], namespace="tattva-chats")
     chroma_collection.upsert(ids=[f"{user_id}_{timestamp}"], embeddings=[embedding], metadatas=[{"input": input_text, "output": output_text}])
 
 # 🔷 Function: retrieve similar past chats
 def retrieve_memory(input_text, top_k=2, user_id="default", use_pinecone=True):
     embedding = embedder.encode(input_text).tolist()
     if use_pinecone:
-        res = pinecone_index.query(embedding, top_k=top_k, include_metadata=True)
+        res = pinecone_index.query(vector=embedding, top_k=top_k, include_metadata=True, namespace="tattva-chats")
         similar_chats = [f"User: {match['metadata']['input']}\nTattva: {match['metadata']['output']}" for match in res['matches']]
     else:
         res = chroma_collection.query(query_embeddings=[embedding], n_results=top_k)
