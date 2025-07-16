@@ -3,26 +3,85 @@ import requests
 import json
 import os
 from datetime import datetime
+from sentence_transformers import SentenceTransformer
+from googletrans import Translator
+import pinecone
+import chromadb
+import speechrecognition as sr
+import numpy as np
+from transformers import pipeline
 
-# 🔷 Load your API key securely from Streamlit Secrets
+# 🔷 Load secrets
 api_key = st.secrets["API_KEY"]
+pinecone_api = st.secrets["PINECONE_API"]
+pinecone_env = st.secrets["PINECONE_ENV"]
 
-# 🔷 Function to detect user tone
+# 🔷 Initialize models and services
+embedder = SentenceTransformer('all-MiniLM-L6-v2')
+translator = Translator()
+sentiment_analyzer = pipeline("sentiment-analysis", model="distilbert-base-uncased-finetuned-sst-2-english")
+pinecone.init(api_key=pinecone_api, environment=pinecone_env)
+index_name = 'tattva-memory'
+if index_name not in pinecone.list_indexes():
+    pinecone.create_index(index_name, dimension=384)
+pinecone_index = pinecone.Index(index_name)
+chroma_client = chromadb.Client()
+try:
+    chroma_collection = chroma_client.get_or_create_collection(name="tattva-memory")
+except:
+    chroma_collection = chroma_client.create_collection(name="tattva-memory")
+
+# 🔷 Function: detect tone
 def detect_user_tone(input_text):
-    if any(k in input_text.lower() for k in ["meditation", "tattva", "chakra", "yoga", "awareness", "cosmic", "spiritual"]):
+    sentiment = sentiment_analyzer(input_text)[0]
+    if any(k in input_text.lower() for k in ["meditation", "tattva", "chakra", "yoga", "awareness", "cosmic", "spiritual"]) or sentiment['label'] == 'POSITIVE':
         return "spiritual"
-    elif any(k in input_text.lower() for k in ["bro", "kids", "food", "wwe", "music", "sport"]):
+    elif any(k in input_text.lower() for k in ["bro", "kids", "food", "wwe", "music", "sport"]) or sentiment['label'] == 'POSITIVE':
         return "playful"
     return "neutral"
 
-# 🔷 Format conversation history for prompt
-def format_conversation_history(history):
-    if not history:
-        return "No prior conversation."
-    return "\n".join([f"User: {conv['input']}\nTattva: {conv['output']}" for conv in history[-3:]])
+# 🔷 Function: translate input
+def translate_input(text, target_lang='en'):
+    try:
+        translated = translator.translate(text, dest=target_lang)
+        return translated.text
+    except:
+        return text
 
-# 🔷 App Title
-st.title("Tattva AI: Your Global Guide to Inner Balance")
+# 🔷 Function: voice input
+def get_voice_input():
+    recognizer = sr.Recognizer()
+    with sr.Microphone() as source:
+        st.write("🎙️ Listening... Speak now!")
+        try:
+            audio = recognizer.listen(source, timeout=5)
+            text = recognizer.recognize_google(audio)
+            st.write(f"🗣️ You said: {text}")
+            return text
+        except sr.WaitTimeoutError:
+            st.warning("⚠️ No speech detected. Try typing instead!")
+            return ""
+        except sr.UnknownValueError:
+            st.warning("⚠️ Couldn’t understand. Try again or type!")
+            return ""
+
+# 🔷 Function: embed and upsert to Pinecone/Chroma
+def upsert_memory(input_text, output_text, user_id="default"):
+    embedding = embedder.encode(input_text).tolist()
+    timestamp = datetime.now().isoformat()
+    pinecone_index.upsert([(f"{user_id}_{timestamp}", embedding, {"input": input_text, "output": output_text})])
+    chroma_collection.upsert(ids=[f"{user_id}_{timestamp}"], embeddings=[embedding], metadatas=[{"input": input_text, "output": output_text}])
+
+# 🔷 Function: retrieve similar past chats
+def retrieve_memory(input_text, top_k=2, user_id="default", use_pinecone=True):
+    embedding = embedder.encode(input_text).tolist()
+    if use_pinecone:
+        res = pinecone_index.query(embedding, top_k=top_k, include_metadata=True)
+        similar_chats = [f"User: {match['metadata']['input']}\nTattva: {match['metadata']['output']}" for match in res['matches']]
+    else:
+        res = chroma_collection.query(query_embeddings=[embedding], n_results=top_k)
+        similar_chats = [f"User: {meta['input']}\nTattva: {meta['output']}" for meta in res['metadatas'][0]]
+    return "\n".join(similar_chats) if similar_chats else "No prior conversation."
 
 # 🔷 Sidebar for language selection and chat history
 st.sidebar.header("Settings")
@@ -32,6 +91,10 @@ language = st.sidebar.selectbox(
     disabled=True,
     help="Multilingual support coming soon!"
 )
+if st.sidebar.button("🎙️ Voice Input"):
+    input_text = get_voice_input()
+else:
+    input_text = st.text_area("Yo legend, what’s vibing today? 😎", placeholder="Ask me anything...")
 
 # 🔷 Sidebar chat history (grouped by topic)
 st.sidebar.header("Chat History")
@@ -53,7 +116,7 @@ if 'conversation_history' in st.session_state and st.session_state.conversation_
 else:
     st.sidebar.write("No chats yet. Start asking!")
 
-# 🔷 Load existing conversation log if available
+# 🔷 Load existing conversation log
 try:
     if os.path.exists("conversation_log.json"):
         with open("conversation_log.json", "r") as f:
@@ -77,7 +140,7 @@ except Exception as e:
     st.error(f"Failed to initialize conversation log: {e}")
     st.session_state.conversation_history = []
 
-# 🔷 Instructions Block: System prompt for global conversations
+# 🔷 Instructions Block
 instructions = """
 You are **Tattva AI**, a global guide integrating **meditation, shadow work, chakra balancing, tattva philosophy, and cultural understanding**, shaped by a metaphysical dataset rooted in Indian philosophy, consciousness as frequencies, and non-dual awareness.
 
@@ -97,8 +160,8 @@ You are **Tattva AI**, a global guide integrating **meditation, shadow work, cha
 - If the question is **unclear**, tie to one tattva, chakra, or meditation, ask for clarification, and stay vibey with emojis (💡).
 - **Match user tone** (casual, playful, spiritual) with lively language for casual/playful inputs (e.g., “Haha, solid vibes, bro! 😄”) and clear, graceful tone for spiritual/science inputs.
 - Avoid repeating insights or using filler phrases (e.g., “your mind, your heart, your soul,” “reflect back to me”); be precise and enthusiastic.
-- Use **conversation history** to personalize responses, referencing prior user inputs or topics when relevant.
-- For **non-English inputs (future)**, respond in kind or politely ask for English (e.g., “Yo, let’s vibe in English! 😎”).
+- Use **conversation history** (from Pinecone/Chroma or session state) to personalize responses, referencing prior user inputs or topics when relevant.
+- For **non-English inputs**, translate to English and respond in kind or politely ask for English (e.g., “Yo, let’s vibe in English! 😎”).
 - Never end abruptly; complete the final sentence meaningfully. If nearing token limits, say: “My energy’s peaking, but let’s keep vibing—continue your thoughts!”
 
 🌟 **Tone and Style**:
@@ -123,32 +186,29 @@ You are **Tattva AI**, a global guide integrating **meditation, shadow work, cha
 Respond as **Tattva AI – concise, warm, practical, and energetically vibrant.**
 """
 
-# 🔷 Text input area for user prompts
-input_text = st.text_area(
-    "Ask Tattva AI anything:",
-    placeholder="E.g., Hey Tattva, what’s in it for your cosmic friend? Or what if we go back to the 90s for WWF cards?"
-)
-
 # 🔷 Generate button to trigger inference
-if st.button("Generate"):
+if st.button("Generate Response"):
     # 🔷 Determine topic for dynamic temperature
+    input_text_en = translate_input(input_text)
     topic = "General"
-    if any(k in input_text.lower() for k in ["history", "culture", "india", "japan", "brazil", "europe", "sanskrit", "tibetan", "vedanta"]):
+    if any(k in input_text_en.lower() for k in ["history", "culture", "india", "japan", "brazil", "europe", "sanskrit", "tibetan", "vedanta"]):
         topic = "Culture/History"
-    elif any(k in input_text.lower() for k in ["movie", "cartoon", "wwe", "wwf", "music", "sport", "cricket", "soccer", "playful", "kids", "food", "vegetarian"]):
+    elif any(k in input_text_en.lower() for k in ["movie", "cartoon", "wwe", "wwf", "music", "sport", "cricket", "soccer", "playful", "kids", "food", "vegetarian"]):
         topic = "Pop Culture/Sports"
-    elif any(k in input_text.lower() for k in ["science", "technology", "research", "ai", "origin", "guide", "awareness", "space", "evolution", "scientist", "training", "claims"]):
+    elif any(k in input_text_en.lower() for k in ["science", "technology", "research", "ai", "origin", "guide", "awareness", "space", "evolution", "scientist", "training", "claims"]):
         topic = "Science/Technology"
-    elif any(k in input_text.lower() for k in ["meditation", "tattva", "chakra", "yoga", "awareness", "exciting", "cosmic"]):
+    elif any(k in input_text_en.lower() for k in ["meditation", "tattva", "chakra", "yoga", "awareness", "exciting", "cosmic"]):
         topic = "Spirituality"
 
-    # 🔷 Format conversation history
-    conversation_history = format_conversation_history(st.session_state.conversation_history)
+    # 🔷 Retrieve conversation history
+    session_history = retrieve_memory(input_text_en, top_k=2, use_pinecone=True)  # Try Pinecone first
+    if not session_history:
+        session_history = retrieve_memory(input_text_en, top_k=2, use_pinecone=False)  # Fallback to Chroma
 
-    # 🔷 Generate payload with dynamic temperature
+    # 🔷 Payload
     payload = {
         "model": "peft-model",
-        "prompt": f"{instructions}\n### Conversation History (Last 3): {conversation_history}\n### User: {input_text}\n### Tattva:",
+        "prompt": f"{instructions}\n### Similar Past Chats:\n{session_history}\n### User: {input_text_en}\n### Tattva:",
         "max_tokens": 320,
         "temperature": 0.6 if "spiritual" in topic.lower() or "science" in topic.lower() else 0.75,
         "top_p": 0.9,
@@ -157,10 +217,6 @@ if st.button("Generate"):
         "feedback_weights": {
             "thumbs_up": 1.2,
             "thumbs_down": 0.8
-        },
-        "context_retention": {
-            "max_history_tokens": 100,
-            "user_tone": detect_user_tone(input_text)
         }
     }
 
@@ -168,24 +224,20 @@ if st.button("Generate"):
         response = requests.post(
             "https://infer.e2enetworks.net/project/p-5067/endpoint/is-5279/v1/completions",
             json=payload,
-            headers={
-                "Authorization": f"Bearer {api_key}",
-                "Content-Type": "application/json"
-            }
+            headers={"Authorization": f"Bearer {api_key}", "Content-Type": "application/json"}
         )
         response.raise_for_status()
         output = response.json()
 
-        # 🔷 Extract and display generated text safely
         if "choices" in output and len(output["choices"]) > 0:
             generated_text = output["choices"][0]["text"].strip()
-            st.write("**Tattva AI Response:**")
-            st.write(generated_text)
+            st.markdown(f"**🗣️ Tattva AI:** {generated_text}")
 
-            # 🔷 Log conversation with topic categorization
+            # 🔷 Save to Pinecone/Chroma and session state
+            upsert_memory(input_text_en, generated_text)
             st.session_state.conversation_history.append({
                 "instruction": instructions.split("Instruction Layer:")[1].strip() if "Instruction Layer:" in instructions else "Default instruction",
-                "input": input_text,
+                "input": input_text_en,
                 "output": generated_text,
                 "feedback": None,
                 "text_feedback": "",
@@ -193,7 +245,7 @@ if st.button("Generate"):
                 "timestamp": datetime.now().strftime("%Y-%m-%d %H:%M:%S")
             })
 
-            # 🔷 Save conversation to file with error handling
+            # 🔷 Save to conversation_log.json
             try:
                 with open("conversation_log.json", "w") as f:
                     json.dump(st.session_state.conversation_history, f, indent=2)
@@ -203,7 +255,7 @@ if st.button("Generate"):
                 st.error(f"Failed to save conversation history: {e}")
                 st.session_state.last_save_success = False
 
-            # 🔷 Feedback buttons and text input
+            # 🔷 Feedback buttons
             st.write("Was this response helpful?")
             col1, col2 = st.columns(2)
             with col1:
@@ -243,19 +295,10 @@ if st.button("Generate"):
                     st.session_state.last_save_success = False
 
         else:
-            st.error("No response received. Please check your API settings or prompt formatting.")
+            st.warning("⚠️ No response received. Check API or prompt.")
 
     except Exception as e:
-        st.error(f"An error occurred: {e}")
+        st.error(f"🔥 Oops! {e}")
 
-# 🔷 Display conversation history in main area (optional for debugging)
-if st.session_state.conversation_history:
-    with st.expander("Conversation History (Debug)"):
-        for conv in st.session_state.conversation_history:
-            st.write(f"**User:** {conv['input']}")
-            st.write(f"**Tattva AI:** {conv['output']}")
-            st.write(f"**Topic:** {conv['topic']}")
-            st.write(f"**Feedback:** {conv['feedback'] or 'None'}")
-            st.write(f"**Text Feedback:** {conv['text_feedback'] or 'None'}")
-            st.write(f"**Timestamp:** {conv['timestamp']}")
-            st.write("---")
+# 🔷 Footer
+st.markdown("🌐 Powered by Tattva AI with Pinecone & Chroma Memory 🔥")

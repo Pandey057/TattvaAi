@@ -1,0 +1,11 @@
+streamlit
+requests
+torch
+sentence-transformers
+googletrans==4.0.0-rc1
+pinecone-client
+chromadb
+speechrecognition
+pyaudio
+transformers
+numpy
