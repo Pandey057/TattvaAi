@@ -5,7 +5,7 @@ import os
 from datetime import datetime
 from sentence_transformers import SentenceTransformer
 from googletrans import Translator
-from pinecone import Pinecone, ServerlessSpec
+import pinecone  # ✅ updated import
 import chromadb
 import speechrecognition as sr
 import numpy as np
@@ -20,20 +20,17 @@ pinecone_env = st.secrets["PINECONE_ENV"]
 embedder = SentenceTransformer('all-MiniLM-L6-v2')
 translator = Translator()
 sentiment_analyzer = pipeline("sentiment-analysis", model="distilbert-base-uncased-finetuned-sst-2-english")
+
 try:
-    pc = Pinecone(api_key=pinecone_api)
+    pinecone.init(api_key=pinecone_api, environment=pinecone_env)  # ✅ updated initialization
     index_name = 'tattva-memory'
-    if index_name not in pc.list_indexes().names():
-        pc.create_index(
-            name=index_name,
-            dimension=384,
-            metric="cosine",
-            spec=ServerlessSpec(cloud="aws", region=pinecone_env)
-        )
-    pinecone_index = pc.Index(index_name)
+    if index_name not in pinecone.list_indexes():
+        pinecone.create_index(index_name, dimension=384, metric="cosine")
+    pinecone_index = pinecone.Index(index_name)
     st.write(f"Pinecone vibing with API: {pinecone_api[:4]}... in {pinecone_env}! 🚀")
 except Exception as e:
     st.error(f"Pinecone oops: {e}. Check your API key or env, bro! 😎")
+
 chroma_client = chromadb.Client()
 try:
     chroma_collection = chroma_client.get_or_create_collection(name="tattva-memory")
@@ -91,6 +88,7 @@ def retrieve_memory(input_text, top_k=2, user_id="default", use_pinecone=True):
         res = chroma_collection.query(query_embeddings=[embedding], n_results=top_k)
         similar_chats = [f"User: {meta['input']}\nTattva: {meta['output']}" for meta in res['metadatas'][0]]
     return "\n".join(similar_chats) if similar_chats else "No prior conversation."
+
 
 # 🔷 Sidebar for language selection and chat history
 st.sidebar.header("Settings")

@@ -5,30 +5,27 @@ streamlit==1.31.0
 requests==2.32.3
 
 # NLP and embedding models
-torch==2.4.1
-sentence-transformers==3.1.1
-scikit-learn==1.5.2
-scipy==1.14.1
+torch>=2.0.0
+sentence-transformers==3.1.0
+scikit-learn
+scipy
 
 # Translation
 googletrans==4.0.0-rc1
 
 # Pinecone vector DB
-pinecone==5.3.1
+pinecone-client
 
 # ChromaDB
-chromadb==0.5.3
-pydantic==2.9.2
+chromadb
+pydantic
 
 # Speech recognition
-SpeechRecognition==3.10.4
-pyaudio==0.2.14
+SpeechRecognition
+pyaudio
 
 # Transformers for sentiment analysis
-transformers==4.44.2
+transformers
 
 # Numerical computations
-numpy==1.26.4
-
-portaudio19-dev
-python3-all-dev
+numpy
