@@ -1,28 +1,8 @@
-# Core app and UI
-streamlit==1.31.0
-
-# API calls and data handling
-requests==2.32.3
-
-# NLP and embedding models
-torch>=2.0.0
-sentence-transformers==3.1.0
-scikit-learn
-scipy
-
-# Translation
-googletrans==4.0.0-rc1
-
-# Pinecone vector DB
-pinecone-client
-
-# ChromaDB
-chromadb
-pydantic
-
-
-# Transformers for sentiment analysis
+streamlit
+requests
+sentence-transformers
+torch  # Required by sentence-transformers
 transformers
-
-# Numerical computations
-numpy
+pinecone-client
+chromadb
+google-cloud-translate
