@@ -54,23 +54,6 @@ def translate_input(text, target_lang='en'):
     except:
         return text
 
-# 🔷 Function: voice input
-def get_voice_input():
-    recognizer = sr.Recognizer()
-    with sr.Microphone() as source:
-        st.write("🎙️ Listening... Speak now!")
-        try:
-            audio = recognizer.listen(source, timeout=5)
-            text = recognizer.recognize_google(audio)
-            st.write(f"🗣️ You said: {text}")
-            return text
-        except sr.WaitTimeoutError:
-            st.warning("⚠️ No speech detected. Try typing instead!")
-            return ""
-        except sr.UnknownValueError:
-            st.warning("⚠️ Couldn’t understand. Try again or type!")
-            return ""
-
 # 🔷 Function: embed and upsert to Pinecone/Chroma
 def upsert_memory(input_text, output_text, user_id="default"):
     embedding = embedder.encode(input_text).tolist()

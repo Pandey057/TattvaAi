@@ -20,9 +20,6 @@ pinecone-client
 chromadb
 pydantic
 
-# Speech recognition
-SpeechRecognition
-pyaudio
 
 # Transformers for sentiment analysis
 transformers
