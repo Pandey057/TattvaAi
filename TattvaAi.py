@@ -149,7 +149,7 @@ if st.button("Generate"):
     payload = {
         "model": "peft-model",
         "prompt": f"{instructions}\n### User: {input_text}\n### Tattva:",
-        "max_tokens": 250,
+        "max_tokens": 200,
         "temperature": 0.65,
         "top_p": 0.9,
         "stop": ["### User:", "### AI:", "### Tattva:", "Example Interaction:"]
