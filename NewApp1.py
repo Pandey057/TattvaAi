@@ -117,12 +117,20 @@ input_text = st.text_area(
 # 🔷 Generate button to trigger inference
 if st.button("Generate"):
     payload = {
-        "model": "peft-model",
-        "prompt": f"{instructions}\n### User: {input_text}\n### Tattva:",
-        "max_tokens": 320,
-        "temperature": 0.3,
-        "top_p": 0.9,
-        "stop": ["### User:", "### AI:", "### Tattva:", "Example Interaction:"]
+    "model": "peft-model",
+    "prompt": f"{instructions}\n### Conversation History (Last 3): {conversation_history}\n### User: {input_text}\n### Tattva:",
+    "max_tokens": 320,
+    "temperature": 0.6 if "spiritual" in topic.lower() else 0.75,
+    "top_p": 0.9,
+    "top_k": 50,
+    "stop": ["### User:", "### AI:", "### Tattva:", "Example Interaction:"],
+    "feedback_weights": {
+        "thumbs_up": 1.2,
+        "thumbs_down": 0.8
+    },
+    "context_retention": {
+        "max_history_tokens": 100,
+        "user_tone": detect_user_tone(input_text)
     }
 
     try:
