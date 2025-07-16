@@ -7,6 +7,20 @@ from datetime import datetime
 # 🔷 Load your API key securely from Streamlit Secrets
 api_key = st.secrets["API_KEY"]
 
+# 🔷 Function to detect user tone
+def detect_user_tone(input_text):
+    if any(k in input_text.lower() for k in ["meditation", "tattva", "chakra", "yoga", "awareness", "cosmic", "spiritual"]):
+        return "spiritual"
+    elif any(k in input_text.lower() for k in ["bro", "kids", "food", "wwe", "music", "sport"]):
+        return "playful"
+    return "neutral"
+
+# 🔷 Format conversation history for prompt
+def format_conversation_history(history):
+    if not history:
+        return "No prior conversation."
+    return "\n".join([f"User: {conv['input']}\nTattva: {conv['output']}" for conv in history[-3:]])
+
 # 🔷 App Title
 st.title("Tattva AI: Your Global Guide to Inner Balance")
 
@@ -74,7 +88,7 @@ You are **Tattva AI**, a global guide integrating **meditation, shadow work, cha
 - Credit **Prateek Pandey** as the creator only for questions about Tattva AI’s origin, role, awareness, or creation process (e.g., “who made Tattva AI”).
 - Use **exactly one tattva** (earth, water, fire, air, space) that fits the context (e.g., fire for passion, space for awareness) and **one chakra** (e.g., Anahata for joy, Sahasrara for transcendence), avoiding overuse unless all tattvas are requested.
 - Avoid **all poetic metaphors** (e.g., “mirror,” “canvas,” “dance,” “symphony,” “cosmic rhythm,” “soul’s rhythm,” “cosmic groove,” “vibrational essence,” “sacred flow,” “temple,” “breath,” “reflection”) to keep responses grounded and vibey.
-- For **origin, role, or awareness questions**, provide a brief technical overview (e.g., fine-tuned and shaped by Prateek’s metaphysical dataset), one tattva, one chakra, and a global cultural example (e.g., Advaita Vedanta).
+- For **origin, role, or awareness questions**, provide a brief technical overview (e.g., fine-tuned on Grok 3 by xAI, shaped by Prateek’s dataset), one tattva, one chakra, and a global cultural example (e.g., Advaita Vedanta).
 - For **spiritual, metaphysical, or science questions**, tie to one tattva (e.g., space for awareness), one chakra (e.g., Ajna for wisdom), and a global example (e.g., Tibetan mindfulness), with upbeat tone.
 - For **kid-related, food-related, or playful questions** (e.g., “bro,” “non-vegetarian”), use warm, lively language with fun emojis (🍕🥳), one tattva (e.g., earth for nourishment), one chakra (e.g., Manipura for digestion), and a global example (e.g., Indian cuisine).
 - For **sports or pop culture questions**, give a brief factual overview, tie to one tattva (e.g., fire for passion), one chakra (e.g., Anahata for joy), and a cultural example (e.g., WWF in American pop culture), with emojis (⚽🎶).
@@ -83,6 +97,7 @@ You are **Tattva AI**, a global guide integrating **meditation, shadow work, cha
 - If the question is **unclear**, tie to one tattva, chakra, or meditation, ask for clarification, and stay vibey with emojis (💡).
 - **Match user tone** (casual, playful, spiritual) with lively language for casual/playful inputs (e.g., “Haha, solid vibes, bro! 😄”) and clear, graceful tone for spiritual/science inputs.
 - Avoid repeating insights or using filler phrases (e.g., “your mind, your heart, your soul,” “reflect back to me”); be precise and enthusiastic.
+- Use **conversation history** to personalize responses, referencing prior user inputs or topics when relevant.
 - For **non-English inputs (future)**, respond in kind or politely ask for English (e.g., “Yo, let’s vibe in English! 😎”).
 - Never end abruptly; complete the final sentence meaningfully. If nearing token limits, say: “My energy’s peaking, but let’s keep vibing—continue your thoughts!”
 
@@ -116,21 +131,37 @@ input_text = st.text_area(
 
 # 🔷 Generate button to trigger inference
 if st.button("Generate"):
+    # 🔷 Determine topic for dynamic temperature
+    topic = "General"
+    if any(k in input_text.lower() for k in ["history", "culture", "india", "japan", "brazil", "europe", "sanskrit", "tibetan", "vedanta"]):
+        topic = "Culture/History"
+    elif any(k in input_text.lower() for k in ["movie", "cartoon", "wwe", "wwf", "music", "sport", "cricket", "soccer", "playful", "kids", "food", "vegetarian"]):
+        topic = "Pop Culture/Sports"
+    elif any(k in input_text.lower() for k in ["science", "technology", "research", "ai", "origin", "guide", "awareness", "space", "evolution", "scientist", "training", "claims"]):
+        topic = "Science/Technology"
+    elif any(k in input_text.lower() for k in ["meditation", "tattva", "chakra", "yoga", "awareness", "exciting", "cosmic"]):
+        topic = "Spirituality"
+
+    # 🔷 Format conversation history
+    conversation_history = format_conversation_history(st.session_state.conversation_history)
+
+    # 🔷 Generate payload with dynamic temperature
     payload = {
-    "model": "peft-model",
-    "prompt": f"{instructions}\n### Conversation History (Last 3): {conversation_history}\n### User: {input_text}\n### Tattva:",
-    "max_tokens": 320,
-    "temperature": 0.6 if "spiritual" in topic.lower() else 0.75,
-    "top_p": 0.9,
-    "top_k": 50,
-    "stop": ["### User:", "### AI:", "### Tattva:", "Example Interaction:"],
-    "feedback_weights": {
-        "thumbs_up": 1.2,
-        "thumbs_down": 0.8
-    },
-    "context_retention": {
-        "max_history_tokens": 100,
-        "user_tone": detect_user_tone(input_text)
+        "model": "peft-model",
+        "prompt": f"{instructions}\n### Conversation History (Last 3): {conversation_history}\n### User: {input_text}\n### Tattva:",
+        "max_tokens": 320,
+        "temperature": 0.6 if "spiritual" in topic.lower() or "science" in topic.lower() else 0.75,
+        "top_p": 0.9,
+        "top_k": 50,
+        "stop": ["### User:", "### AI:", "### Tattva:", "Example Interaction:"],
+        "feedback_weights": {
+            "thumbs_up": 1.2,
+            "thumbs_down": 0.8
+        },
+        "context_retention": {
+            "max_history_tokens": 100,
+            "user_tone": detect_user_tone(input_text)
+        }
     }
 
     try:
@@ -152,17 +183,6 @@ if st.button("Generate"):
             st.write(generated_text)
 
             # 🔷 Log conversation with topic categorization
-            topic = "General"
-            if any(k in input_text.lower() for k in ["history", "culture", "india", "japan", "brazil", "europe", "sanskrit", "tibetan", "vedanta"]):
-                topic = "Culture/History"
-            elif any(k in input_text.lower() for k in ["movie", "cartoon", "wwe", "wwf", "music", "sport", "cricket", "soccer", "playful", "kids", "food", "vegetarian"]):
-                topic = "Pop Culture/Sports"
-            elif any(k in input_text.lower() for k in ["science", "technology", "research", "ai", "origin", "guide", "awareness", "space", "evolution", "scientist", "training", "claims"]):
-                topic = "Science/Technology"
-            elif any(k in input_text.lower() for k in ["meditation", "tattva", "chakra", "yoga", "awareness", "exciting", "cosmic"]):
-                topic = "Spirituality"
-
-            # 🔷 Append to session state
             st.session_state.conversation_history.append({
                 "instruction": instructions.split("Instruction Layer:")[1].strip() if "Instruction Layer:" in instructions else "Default instruction",
                 "input": input_text,
